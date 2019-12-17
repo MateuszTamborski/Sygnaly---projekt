@@ -1,0 +1,1 @@
+# Sygnaly---projekt
