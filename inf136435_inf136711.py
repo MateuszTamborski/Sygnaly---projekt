@@ -7,17 +7,17 @@ from python_speech_features import mfcc
 from python_speech_features import delta
 from sklearn import preprocessing
 import warnings
+import sys
 
 warnings.filterwarnings("ignore")
 
 path = os.path.dirname(os.path.abspath(__file__))
-
 source = path + '\\trainall\\'
 
 train_files_males = [os.path.join(source, f) for f in os.listdir(source) if f.endswith('M.wav')]
 train_files_females = [os.path.join(source, f) for f in os.listdir(source) if f.endswith('K.wav')]
 
-#Making model=================================================
+# Making model=================================================
 
 def extractfeatures(path):
         sr, audio = scipy.io.wavfile.read(path)
@@ -26,9 +26,9 @@ def extractfeatures(path):
             sr,  # sample rate of the signal
             winlen=0.05,  # length of the analysis window in seconds (default 0.025s)
             winstep=0.01,  # step between successive windows in seconds (default 0.01s)
-            numcep=5,  # number of cepstrum to return (default 13)
+            numcep=13,  # number of cepstrum to return (default 13)
             nfilt=30,  # number of filters in the filterbank (default 26)
-            nfft=512,  # FFT size (default 512)
+            nfft=4096,  # FFT size (default 512)
             appendEnergy=True)
 
         mfcc_feature = preprocessing.scale(mfcc_feature)
@@ -54,6 +54,10 @@ def save_gmm(gmm, name):
     print("SAVING", filename)
 
 def get_models():
+    if os.path.exists("females.gmm"):
+        os.remove("females.gmm")
+    if os.path.exists("males.gmm"):
+        os.remove("males.gmm")
     female_features = collect_features(train_files_females)
     male_features = collect_features(train_files_males)
 
@@ -66,10 +70,17 @@ def get_models():
     save_gmm(females_gmm, "females")
     save_gmm(males_gmm, "males")
 
-#Testing data=========================================
+# Testing data=========================================
 
-test_data = path + '\\test_data\\'
-test_files = [os.path.join(test_data, f) for f in os.listdir(source)]
+# test_data = path + '\\test_data\\K\\'
+# test_data = path + '\\próbki\\' #moja próbka
+# test_files = [os.path.join(test_data, f) for f in os.listdir(test_data)]
+
+
+file = sys.argv[1]
+filepath = path + '\\'
+test_files = [os.path.join(filepath, file)]
+
 
 def choose_gender(vector):
     females_gmm = pickle.load(open('females.gmm', 'rb'))
@@ -81,32 +92,30 @@ def choose_gender(vector):
     is_male_scores = np.array(males_gmm.score(vector))
     is_male_log_likelihood = is_male_scores.sum()
 
-    print("FEMALE SCORE: ", str(round(is_female_log_likelihood, 3)))
-    print("MALE SCORE: ", str(round(is_male_log_likelihood, 3)))
+    # print("FEMALE SCORE: ", str(round(is_female_log_likelihood, 3)))
+    # print("MALE SCORE: ", str(round(is_male_log_likelihood, 3)))
 
     if is_male_log_likelihood > is_female_log_likelihood:
-        gender = "male"
+        gender = "M"
     else:
-        gender = "female"
+        gender = "K"
     return gender
 
 def recognise(files):
-    MALES = 0
-    FEMALES = 0
+    # MALES = 0
+    # FEMALES = 0
     for file in files:
-        print("TESTING: ", os.path.basename(file))
-
+        # print("TESTING: ", os.path.basename(file))
         vector = extractfeatures(file)
         gender = choose_gender(vector)
-        print("GENDER: ", gender)
-        if gender == "male":
-            MALES += 1
-        else:
-            FEMALES += 1
-    print("########\nRECOGNISED FEMALES: ", FEMALES)
-    print("FEMALES:", len(train_files_females))
-    print("########\nRECOGNISED MALES: ", MALES)
-    print("MALES:", len(train_files_males))
+        print(gender)
+        # if gender == "male":
+        #    MALES += 1
+        # else:
+        #    FEMALES += 1
+    # print("RECOGNISED FEMALES: ", FEMALES)
+    # print("RECOGNISED MALES: ", MALES)
+    # print("FILES:", len(test_files))
 
 
 #get_models()
